@@ -62,16 +62,22 @@ wsServer.on("request", function (request) {
   });
 });
 
-function MessageHandler(ws: connection, message: IncomingMessage) {
+function MessageHandler(socket: connection, message: IncomingMessage) {
   const { type, payload } = message;
   if (type === IncomingSupportedMessage.JoinRoom) {
-    userManager.addUser(payload.name, payload.roomId, payload.userId, ws);
+    userManager.addUser(payload.name, payload.roomId, payload.userId, socket);
   } else if (type === IncomingSupportedMessage.SendMessage) {
     const { roomId, userId, message } = payload;
     const user = userManager.getUser(roomId, userId);
-    if (!user) return "User and room have mismatched!!!";
+    if (!user) {
+      console.log("User and room have mismatched!!!");
+      return;
+    }
     const chat = store.addChat(roomId, userId, message);
-    if (!chat) return "chat not created!!!";
+    if (!chat) {
+      console.log("Chat not found");
+      return;
+    }
     const outgoingPayload: OutgoingMessage = {
       type: OutgoingSupportedMessages.AddChat,
       payload: {
@@ -86,10 +92,15 @@ function MessageHandler(ws: connection, message: IncomingMessage) {
   } else if (type === IncomingSupportedMessage.UpvoteMessage) {
     const { roomId, userId, chatId } = payload;
     const user = userManager.getUser(roomId, userId);
-    if (!user) return "User and room have mismatched!!!";
+    if (!user) {
+      console.log("User and room have mismatched!!!");
+      return;
+    }
     const chat = store.upvote(userId, roomId, chatId);
-    if (!chat) return "Chat not found";
-
+    if (!chat) {
+      console.log("Chat not found");
+      return;
+    }
     const outgoingPayload: OutgoingMessage = {
       type: OutgoingSupportedMessages.UpdateChat,
       payload: {
@@ -100,6 +111,7 @@ function MessageHandler(ws: connection, message: IncomingMessage) {
     };
     userManager.broadcast(payload.roomId, payload.userId, outgoingPayload);
   } else {
-    return "unsupported message type!!!";
+    console.log("unsupported message type");
+    return;
   }
 }
