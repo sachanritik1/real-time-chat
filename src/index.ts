@@ -1,5 +1,5 @@
-import { server as WebSocketServer, connection } from "websocket";
-import http from "http";
+import { connection } from "websocket";
+
 import {
   IncomingMessage,
   SupportedMessage as IncomingSupportedMessage,
@@ -10,39 +10,13 @@ import {
   OutgoingMessage,
   SupportedMessage as OutgoingSupportedMessages,
 } from "./messages/outgoingMessages";
-
-const server = http.createServer(function (request, response) {
-  console.log(new Date() + " Received request for " + request.url);
-  response.writeHead(404);
-  response.end();
-});
+import { wsServer, app } from "./app";
 
 const userManager = new UserManager();
 const store = new InMemoryStore();
 
-server.listen(8080, function () {
-  console.log(new Date() + " Server is listening on port 8080");
-});
-
-const wsServer = new WebSocketServer({
-  httpServer: server,
-  autoAcceptConnections: false,
-});
-
-function originIsAllowed(origin: string) {
-  return true;
-}
-
 wsServer.on("request", function (request) {
-  if (!originIsAllowed(request.origin)) {
-    request.reject();
-    console.log(
-      new Date() + " Connection from origin " + request.origin + " rejected."
-    );
-    return;
-  }
-
-  var connection = request.accept(null, request.origin);
+  const connection = request.accept(null, request.origin);
   console.log(new Date() + " Connection accepted.");
   connection.on("message", function (message) {
     if (message.type === "utf8") {
@@ -63,6 +37,8 @@ wsServer.on("request", function (request) {
 });
 
 function MessageHandler(socket: connection, message: IncomingMessage) {
+  console.log("Received Message: ", message);
+
   const { type, payload } = message;
   if (type === IncomingSupportedMessage.JoinRoom) {
     userManager.addUser(payload.name, payload.roomId, payload.userId, socket);
@@ -83,6 +59,7 @@ function MessageHandler(socket: connection, message: IncomingMessage) {
       payload: {
         chatId: chat?.chatId,
         roomId: payload.roomId,
+        userId: payload.userId,
         message: payload.message,
         name: user.name,
         upvotes: 0,
@@ -115,3 +92,22 @@ function MessageHandler(socket: connection, message: IncomingMessage) {
     return;
   }
 }
+
+app.post("/create/room", function (req, res) {
+  const roomId = req.body.roomId;
+  const room = store.initRoom(roomId);
+  if (!room) {
+    res.status(400).json({ message: "Room already exists" });
+    return;
+  }
+  res.status(200).json({ message: "Room created" });
+});
+
+app.get("/rooms", function (req, res) {
+  const roomIds = store.getRoomIds();
+  if (!roomIds) {
+    res.status(400).json({ message: "No rooms found" });
+    return;
+  }
+  res.status(200).json({ roomIds: roomIds });
+});
