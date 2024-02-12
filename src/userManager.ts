@@ -31,6 +31,9 @@ export class UserManager {
     } else {
       room.users.push(user);
     }
+    socket.on("close", (reasonCode, description) => {
+      this.removeUser(roomId, userId);
+    });
   }
 
   removeUser(roomId: string, userId: string) {
@@ -44,6 +47,7 @@ export class UserManager {
       users: remainingUsers,
     };
     this.map.set(roomId, room);
+    console.log("Removed user!!");
   }
 
   getUser(roomId: string, userId: string) {
