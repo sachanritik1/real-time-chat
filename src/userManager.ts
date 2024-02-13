@@ -29,6 +29,12 @@ export class UserManager {
         users: [user],
       });
     } else {
+      const userAlreadyExist = this.map
+        .get(roomId)
+        ?.users.find((user) => user.id === userId);
+      if (userAlreadyExist) {
+        return;
+      }
       room.users.push(user);
     }
     socket.on("close", (reasonCode, description) => {
