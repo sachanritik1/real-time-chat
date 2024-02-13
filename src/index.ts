@@ -100,7 +100,7 @@ app.post("/create/room", function (req, res) {
     res.status(400).json({ message: "Room already exists" });
     return;
   }
-  res.status(200).json({ message: "Room created" });
+  res.status(200).json({ roomId });
 });
 
 app.get("/rooms", function (req, res) {
@@ -110,4 +110,14 @@ app.get("/rooms", function (req, res) {
     return;
   }
   res.status(200).json({ roomIds: roomIds });
+});
+
+app.get("/room/:roomId", function (req, res) {
+  const roomId = req.params.roomId;
+  const room = store.getRoom(roomId);
+  if (!room) {
+    res.status(400).json({ message: "Room not found" });
+    return;
+  }
+  res.status(200).json({ room });
 });
