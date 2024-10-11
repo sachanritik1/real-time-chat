@@ -1,12 +1,16 @@
+"use client";
+
 import { useRef } from "react";
-import { Navigate } from "react-router-dom";
 import { useRecoilState } from "recoil";
 import { userAtom } from "../store/store";
+import { useRouter } from "next/navigation";
 
 const SignIn = () => {
   const userIdRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const [user, setUser] = useRecoilState(userAtom);
+
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -15,9 +19,12 @@ const SignIn = () => {
     if (!userId || !name) return;
     setUser({ userId, name });
   };
-  return user ? (
-    <Navigate to="/home" />
-  ) : (
+
+  if (user) {
+    router.push("/home");
+  }
+
+  return (
     <div className="flex flex-col justify-center items-center mx-auto h-screen">
       <h1 className="my-4 text-3xl font-bol -mt-20">Welcome!</h1>
       <div className="bg-slate-300 p-4 rounded-lg">
