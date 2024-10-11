@@ -1,91 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Send Request to Webhook</title>
+    <title>Vite + React + TS</title>
   </head>
   <body>
-    <h1>Send Request to Webhook</h1>
-    <button onclick="connectWebSocket()">Connect WebSocket</button>
-    <input type="text" id="roomInput" placeholder="Enter room id here..." />
-    <input type="text" id="nameInput" placeholder="Enter name here..." />
-    <button onclick="joinRoom()">Join Room</button>
-    <input type="text" id="messageInput" placeholder="Type your message..." />
-    <button onclick="sendWebSocketMessage()">Send WebSocket Message</button>
-
-    <div id="chats"></div>
-
-    <script>
-      var socket;
-
-      function connectWebSocket() {
-        socket = new WebSocket("ws://localhost:8080");
-
-        socket.addEventListener("open", function (event) {
-          console.log("WebSocket connected");
-        });
-
-        socket.addEventListener("message", function (event) {
-          const data = JSON.parse(event?.data);
-          const { type, payload } = data;
-          const { chatId, roomId, message, name, upVotes } = payload;
-
-          const chats = document.getElementById("chats");
-          const chat = document.createElement("p");
-          chat.textContent = `${roomId} - ${chatId} - ${message} - ${name} ${upVotes}`;
-          chats.appendChild(chat);
-        });
-
-        socket.addEventListener("close", function (event) {
-          console.log("WebSocket connection closed");
-        });
-
-        socket.addEventListener("error", function (error) {
-          console.error("WebSocket error:", error);
-        });
-      }
-
-      function sendWebSocketMessage() {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          const messageContent = document
-            .getElementById("messageInput")
-            .value.trim();
-          const name = document.getElementById("nameInput").value.trim();
-          const roomId = document.getElementById("roomInput").value.trim();
-
-          const message = {
-            type: "SEND_MESSAGE",
-            payload: {
-              message: messageContent,
-              userId: name,
-              roomId: roomId,
-            },
-          };
-
-          socket.send(JSON.stringify(message));
-        } else {
-          console.error("WebSocket is not open");
-        }
-      }
-
-      function joinRoom() {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          const name = document.getElementById("nameInput").value.trim();
-          const roomId = document.getElementById("roomInput").value.trim();
-          const message = {
-            type: "JOIN_ROOM",
-            payload: {
-              name: name,
-              roomId: roomId,
-              userId: name,
-            },
-          };
-          socket.send(JSON.stringify(message));
-        } else {
-          console.error("WebSocket is not open");
-        }
-      }
-    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
