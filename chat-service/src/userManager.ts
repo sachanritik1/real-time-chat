@@ -11,7 +11,7 @@ interface Room {
   users: User[];
 }
 
-export class UserManager {
+class UserManager {
   private static instance: UserManager;
   private map: Map<string, Room>; //roomId => user[]
   private constructor() {
@@ -92,3 +92,5 @@ export class UserManager {
     });
   }
 }
+
+export const userManager = UserManager.getInstance();

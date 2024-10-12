@@ -4,16 +4,13 @@ import {
   IncomingMessage,
   SupportedMessage as IncomingSupportedMessage,
 } from "./messages/incomingMessages";
-import { UserManager } from "./userManager";
-import { InMemoryStore } from "./store/inMemoryStore";
+import { userManager } from "./userManager";
+import { inMemoryStore as store } from "./store/inMemoryStore";
 import {
   OutgoingMessage,
   SupportedMessage as OutgoingSupportedMessages,
 } from "./messages/outgoingMessages";
 import { wsServer, app } from "./app";
-
-const userManager = UserManager.getInstance();
-const store = new InMemoryStore();
 
 wsServer.on("request", function (request) {
   const connection = request.accept(null, request.origin);
