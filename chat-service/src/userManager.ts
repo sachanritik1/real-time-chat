@@ -12,9 +12,17 @@ interface Room {
 }
 
 export class UserManager {
+  private static instance: UserManager;
   private map: Map<string, Room>; //roomId => user[]
-  constructor() {
+  private constructor() {
     this.map = new Map<string, Room>();
+  }
+
+  static getInstance() {
+    if (!UserManager.instance) {
+      UserManager.instance = new UserManager();
+    }
+    return UserManager.instance;
   }
 
   addUser(name: string, roomId: string, userId: string, socket: connection) {

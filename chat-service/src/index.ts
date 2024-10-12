@@ -12,7 +12,7 @@ import {
 } from "./messages/outgoingMessages";
 import { wsServer, app } from "./app";
 
-const userManager = new UserManager();
+const userManager = UserManager.getInstance();
 const store = new InMemoryStore();
 
 wsServer.on("request", function (request) {
