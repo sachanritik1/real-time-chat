@@ -11,13 +11,16 @@ const ProfileInput = () => {
     const button = e.currentTarget[1] as HTMLButtonElement;
     try {
       button.disabled = true;
-      const res = await fetch(import.meta.env.VITE_BASE_URL + "/create/room", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ roomId: roomIdRef.current?.value }),
-      });
+      const res = await fetch(
+        process.env.NEXT_PUBLIC_BASE_URL + "/create/room",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ roomId: roomIdRef.current?.value }),
+        }
+      );
       const json = await res.json();
       if (!json.roomId) throw new Error(json.message);
       setRoomIds((prev) => [...prev, json.roomId]);

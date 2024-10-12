@@ -12,7 +12,9 @@ const SideBar = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await fetch(import.meta.env.VITE_BASE_URL + "/rooms");
+        const response = await fetch(
+          process.env.NEXT_PUBLIC_BASE_URL + "/rooms"
+        );
         const json = await response.json();
         console.log(json);
         setRoomIds(json.roomIds);

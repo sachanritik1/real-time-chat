@@ -1,19 +1,23 @@
-import SideBar from "../components/SideBar";
+"use client";
+
+import SideBar from "@/components/SideBar";
 import { useEffect } from "react";
-import { Navigate } from "react-router-dom";
 import { useRecoilState, useRecoilValue } from "recoil";
-import { userAtom, wsAtom, currentRoomIdAtom } from "../store/store";
-import DefaultChatPage from "../components/DefaultChatPage";
-import Chats from "../components/Chats";
+import { userAtom, wsAtom, currentRoomIdAtom } from "@/store/store";
+import DefaultChatPage from "@/components/DefaultChatPage";
+import Chats from "@/components/Chats";
+import { useRouter } from "next/navigation";
 
 const ChatBox = () => {
   const user = useRecoilValue(userAtom);
   const currentRoomId = useRecoilValue(currentRoomIdAtom);
   const [ws, setWs] = useRecoilState(wsAtom);
 
+  const router = useRouter();
+
   useEffect(() => {
     async function connect() {
-      const socket = new WebSocket(import.meta.env.VITE_WEBSOCKET_URL);
+      const socket = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL || "");
       setWs(socket);
       if (!ws) return;
       ws.onopen = () => {
@@ -32,15 +36,18 @@ const ChatBox = () => {
 
   console.log("user", user);
 
-  return user ? (
+  if (!user) {
+    router.push("/");
+    return null;
+  }
+
+  return (
     <div className="flex h-screen antialiased text-gray-800">
       <div className="flex flex-row h-full w-full overflow-x-hidden">
         <SideBar />
         {currentRoomId ? <Chats /> : <DefaultChatPage />}
       </div>
     </div>
-  ) : (
-    <Navigate to="/" />
   );
 };
 
