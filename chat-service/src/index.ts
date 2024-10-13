@@ -109,9 +109,9 @@ app.get("/rooms", async function (req, res) {
   res.status(200).json({ roomIds: roomIds });
 });
 
-app.get("/room/:roomId", function (req, res) {
+app.get("/room/:roomId", async function (req, res) {
   const roomId = req.params.roomId;
-  const room = store.getRoom(roomId);
+  const room = await store.getRoom(roomId);
   if (!room) {
     res.status(400).json({ message: "Room not found" });
     return;
