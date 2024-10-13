@@ -33,7 +33,7 @@ wsServer.on("request", function (request) {
   });
 });
 
-function MessageHandler(socket: connection, message: IncomingMessage) {
+async function MessageHandler(socket: connection, message: IncomingMessage) {
   console.log("Received Message: ", message);
 
   const { type, payload } = message;
@@ -46,7 +46,7 @@ function MessageHandler(socket: connection, message: IncomingMessage) {
       console.log("User and room have mismatched!!!");
       return;
     }
-    const chat = store.addChat(roomId, userId, message);
+    const chat = await store.addChat(roomId, userId, message);
     if (!chat) {
       console.log("Chat not found");
       return;
@@ -70,7 +70,7 @@ function MessageHandler(socket: connection, message: IncomingMessage) {
       console.log("User and room have mismatched!!!");
       return;
     }
-    const chat = store.upvote(userId, roomId, chatId);
+    const chat = await store.upvote(userId, roomId, chatId);
     if (!chat) {
       console.log("Chat not found");
       return;
@@ -100,8 +100,8 @@ app.post("/create/room", function (req, res) {
   res.status(200).json({ roomId });
 });
 
-app.get("/rooms", function (req, res) {
-  const roomIds = store.getRoomIds();
+app.get("/rooms", async function (req, res) {
+  const roomIds = await store.getRoomIds();
   if (!roomIds) {
     res.status(400).json({ message: "No rooms found" });
     return;

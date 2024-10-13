@@ -8,7 +8,7 @@ export interface Chat {
   createdAt: Date;
 }
 
-export abstract class store {
+export abstract class Store {
   constructor() {}
   initRoom(roomId: string) {}
   getRoom(roomId: string) {}
