@@ -15,6 +15,8 @@ const ChatBox = () => {
 
   const router = useRouter();
 
+  console.log("websocket URL", process.env.NEXT_PUBLIC_WEBSOCKET_URL);
+
   useEffect(() => {
     async function connect() {
       const socket = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL || "");
