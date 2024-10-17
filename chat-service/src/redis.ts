@@ -5,21 +5,26 @@ import path from "path";
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
+const url = process.env.REDIS_URL || "redis://localhost:6379";
+
 let redisClient: RedisClientType;
 
 export function getRedisClient() {
   if (redisClient) return redisClient;
 
-  console.log("redis url", process.env.REDIS_URL);
-
   redisClient = createClient({
-    url: process.env.REDIS_URL || "redis://localhost:6379",
+    url: url,
   });
-  (async () => {
-    redisClient.on("error", (err: any) =>
-      console.log("Redis Client Error", err)
-    );
-    await redisClient.connect();
-  })();
+  try {
+    (async () => {
+      redisClient.on("error", (err: any) =>
+        console.log("Redis Client Error", err)
+      );
+      await redisClient.connect();
+      console.log("Redis connected with: ", url);
+    })();
+  } catch (e) {
+    console.log(e);
+  }
   return redisClient;
 }
