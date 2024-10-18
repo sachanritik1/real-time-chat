@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Chat      Chat[]
+  Room      Room[]
+  UpVotes   UpVote[] @relation(map: "UpVotes_user_fkey")
+}
+
+model Chat {
+  id        String   @id @default(cuid())
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [id], references: [id], map: "Chat_user_fkey")
+  Room      Room     @relation(fields: [id], references: [id], map: "Chat_room_fkey")
+  UpVotes   UpVote[] @relation(map: "UpVotes_chat_fkey")
+}
+
+model Room{
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  Chats     Chat[]
+}
+
+model UpVote{
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [id], references: [id], map: "UpVotes_user_fkey")
+  Chat      Chat     @relation(fields: [id], references: [id], map: "UpVotes_chat_fkey")
+}
