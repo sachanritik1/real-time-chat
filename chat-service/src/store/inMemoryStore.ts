@@ -1,15 +1,17 @@
+import { Chat, Room } from "@prisma/client";
+import { getPrismaClient } from "../prisma";
 import { getRedisClient } from "../redis";
-import { User } from "../userManager";
-import { Chat, Store, userId } from "./store";
+import { Store } from "./store";
 let globalChatId = 0;
 
-export interface Room {
-  roomId: string;
-  chats: Chat[];
-  users: User[];
-}
+// export interface Room {
+//   roomId: string;
+//   chats: Chat[];
+//   users: User[];
+// }
 
 const redisClient = getRedisClient();
+const primaClient = getPrismaClient();
 
 class InMemoryStore implements Store {
   private static instance: InMemoryStore;
@@ -25,19 +27,21 @@ class InMemoryStore implements Store {
 
   // 1. Initialize a room in Redis
   async initRoom(roomId: string) {
-    const room = await redisClient.GET(roomId);
-    if (room) return false; // Room already exists in Redis
-
-    const newRoom: Room = { roomId, chats: [], users: [] };
-    await redisClient.SET(roomId, JSON.stringify(newRoom));
-    return true;
+    let room = await primaClient.room.findUnique({
+      where: { id: roomId },
+    });
+    if (!room) {
+      room = await primaClient.room.create({ data: { name: roomId } });
+    }
+    return room?.id;
   }
 
-  // 2. Get a room and its chats from Redis
+  // 2. Get a room
   async getRoom(roomId: string): Promise<Room | null> {
-    const roomData = await redisClient.GET(roomId);
-    if (!roomData) return null;
-    return JSON.parse(roomData);
+    const room = await primaClient.room.findUnique({
+      where: { id: roomId },
+    });
+    return room;
   }
 
   // 3. Fetch chat history with limit and offset
@@ -46,19 +50,26 @@ class InMemoryStore implements Store {
     limit: number,
     offset: number
   ): Promise<Chat[]> {
-    const room: Room | null = await this.getRoom(roomId);
-    if (!room) return [];
-
-    // Slice the chats for pagination
-    return room.chats.slice(offset, offset + limit);
+    const chats: Chat[] = await primaClient.chat.findMany({
+      where: { room: { id: roomId } },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    });
+    return chats;
   }
 
   getChatLimitOffset() {}
 
+  async getRooms() {
+    const rooms = await primaClient.room.findMany();
+    return rooms;
+  }
+
   async getRoomIds(): Promise<string[]> {
-    // Fetch all keys from Redis
-    const keys = await redisClient.KEYS("*");
-    return keys;
+    const rooms = await this.getRooms();
+    const roomIds = rooms.map((room) => room.id);
+    return roomIds;
   }
 
   // 4. Add a new chat to a room in Redis and broadcast via Pub/Sub
@@ -67,59 +78,26 @@ class InMemoryStore implements Store {
     userId: string,
     message: string
   ): Promise<Chat | null> {
-    const room = await this.getRoom(roomId);
-    if (!room) return null;
+    // add chat to redis buffer to bulk save later on db
+    // publish the chat to redis pub/sub for real-time chats
 
     // Create a new chat message
     const chat: Chat = {
-      chatId: (globalChatId++).toString(),
-      userId,
+      id: String(globalChatId++),
       message,
-      upvotes: [],
       createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
-    // Update room with the new chat
-    room.chats.push(chat);
-    await redisClient.SET(roomId, JSON.stringify(room));
+    // push in buffer
+    await redisClient.RPUSH(
+      "chatBuffer",
+      JSON.stringify({ chat, roomId, userId })
+    );
 
     // Publish the new chat to Redis Pub/Sub
-    await redisClient.PUBLISH(roomId, JSON.stringify(chat));
-
+    await redisClient.PUBLISH(roomId, JSON.stringify({ chat, userId }));
     return chat;
-  }
-
-  // 5. Upvote a chat in Redis
-  async upvote(
-    roomId: string,
-    userId: userId,
-    chatId: string
-  ): Promise<Chat | null> {
-    const room = await this.getRoom(roomId);
-    if (!room) return null;
-
-    const chat = room.chats.find((c) => c.chatId === chatId);
-    if (!chat) return null;
-
-    // Add the userId to the upvotes
-    chat.upvotes.push(userId);
-
-    // Update room in Redis
-    await redisClient.SET(roomId, JSON.stringify(room));
-
-    return chat;
-  }
-
-  // 6. Handle Redis Pub/Sub message events for broadcasting
-  async subscribeToRoom(roomId: string) {
-    const subscriber = redisClient.duplicate();
-    await subscriber.connect();
-
-    await subscriber.SUBSCRIBE(roomId, async (message) => {
-      const chat = JSON.parse(message);
-      // Broadcast this chat to all users connected to this server
-      console.log(`New message in room ${roomId}: ${chat.message}`);
-    });
   }
 }
 

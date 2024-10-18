@@ -51,39 +51,18 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
       console.log("Chat not found");
       return;
     }
-    const outgoingPayload: OutgoingMessage = {
-      type: OutgoingSupportedMessages.AddChat,
-      payload: {
-        chatId: chat?.chatId,
-        roomId: payload.roomId,
-        userId: payload.userId,
-        message: payload.message,
-        name: user.name,
-        upvotes: 0,
-      },
-    };
-    userManager.broadcast(payload.roomId, payload.userId, outgoingPayload);
-  } else if (type === IncomingSupportedMessage.UpvoteMessage) {
-    const { roomId, userId, chatId } = payload;
-    const user = userManager.getUser(roomId, userId);
-    if (!user) {
-      console.log("User and room have mismatched!!!");
-      return;
-    }
-    const chat = await store.upvote(userId, roomId, chatId);
-    if (!chat) {
-      console.log("Chat not found");
-      return;
-    }
-    const outgoingPayload: OutgoingMessage = {
-      type: OutgoingSupportedMessages.UpdateChat,
-      payload: {
-        chatId: payload.chatId,
-        roomId: payload.roomId,
-        upvotes: chat.upvotes.length,
-      },
-    };
-    userManager.broadcast(payload.roomId, payload.userId, outgoingPayload);
+    // const outgoingPayload: OutgoingMessage = {
+    //   type: OutgoingSupportedMessages.AddChat,
+    //   payload: {
+    //     chatId: chat?.id,
+    //     roomId: payload.roomId,
+    //     userId: payload.userId,
+    //     message: payload.message,
+    //     name: user.name,
+    //     upvotes: 0,
+    //   },
+    // };
+    // userManager.broadcast(payload.roomId, payload.userId, outgoingPayload);
   } else {
     console.log("unsupported message type");
     return;

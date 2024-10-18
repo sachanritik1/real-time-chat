@@ -1,15 +1,21 @@
 import { connection } from "websocket";
-import { OutgoingMessage } from "./messages/outgoingMessages";
+import {
+  OutgoingMessage,
+  SupportedMessage as OutgoingSupportedMessages,
+} from "./messages/outgoingMessages";
 import { getRedisClient } from "./redis";
-import { inMemoryStore, Room } from "./store/inMemoryStore";
+import { inMemoryStore } from "./store/inMemoryStore";
+import { PrismaClient, Room, User } from "@prisma/client";
+import { getPrismaClient } from "./prisma";
 
-export interface User {
-  id: string;
-  name: string;
-  conn: connection;
-}
+// export interface User {
+//   id: string;
+//   name: string;
+//   conn: connection;
+// }
 
 const redisClient = getRedisClient();
+const primasClient = getPrismaClient();
 
 class UserManager {
   private static instance: UserManager;
@@ -22,88 +28,100 @@ class UserManager {
     return UserManager.instance;
   }
 
+  async getUser(userId: string, roomId?: string) {
+    const where: { id: string; room?: { id: string } } = { id: userId };
+    if (roomId) {
+      where.room = { id: roomId };
+    }
+    const user = await primasClient.user?.findUnique({
+      where,
+    });
+    return user;
+  }
+
+  async subscribeToRoom(roomId: string, socket: connection) {
+    await redisClient.SUBSCRIBE(roomId, (message) => {
+      console.log("Message received in room", roomId, message);
+
+      const { chat, userId } = JSON.parse(message);
+
+      const outgoingPayload: OutgoingMessage = {
+        type: OutgoingSupportedMessages.AddChat,
+        payload: {
+          chatId: chat?.id,
+          roomId: roomId,
+          userId: userId,
+          message: chat.message,
+          name: userId,
+          upvotes: 0,
+        },
+      };
+      socket.sendUTF(JSON.stringify(outgoingPayload));
+    });
+  }
+
   async addUser(
     name: string,
     roomId: string,
     userId: string,
     socket: connection
   ) {
-    const room: Room | null = await inMemoryStore.getRoom(roomId);
-    if (!room) {
-      console.error("Room not found");
-      return;
-    }
-    const user: User = {
-      id: userId,
-      name,
-      conn: socket,
-    };
-    console.log("room", room);
+    const room = await inMemoryStore.getRoom(roomId);
+    let _roomId = room?.id;
+    if (!room) return;
 
-    if (room) {
-      const userAlreadyExist = room?.users?.find(
-        (_user: User) => _user?.id === userId
-      );
-      console.log("userAlreadyExist", userAlreadyExist);
-      if (userAlreadyExist) {
-        return;
-      }
-      const updatedRoom: Room = {
-        users: [...room?.users, user],
-        chats: room.chats,
-        roomId,
-      };
-      await redisClient.SET(roomId, JSON.stringify(updatedRoom));
-    } else {
-      const newRoom: Room = { chats: [], users: [user], roomId };
-      await redisClient.SET(roomId, JSON.stringify(newRoom));
-    }
+    _roomId = await inMemoryStore.initRoom(roomId);
+
+    await primasClient.user.update({
+      where: { id: userId },
+      data: {
+        room: {
+          connect: {
+            id: _roomId,
+          },
+        },
+      },
+    });
+
+    await this.subscribeToRoom(roomId, socket);
   }
 
   async removeUser(roomId: string, userId: string) {
     const room: Room | null = await inMemoryStore.getRoom(roomId);
-
     if (!room) return;
-    const userToRemove = room?.users?.find((user: User) => user.id === userId);
-    if (!userToRemove) return;
-    let remainingUsers =
-      room?.users.filter((user: User) => user.id !== userId) || [];
 
-    const updatedRoom: Room = {
-      users: remainingUsers,
-      chats: room.chats,
-      roomId,
-    };
-    await redisClient.SET(roomId, JSON.stringify(updatedRoom));
+    const userToRemove = await this.getUser(userId, roomId);
+    if (!userToRemove) return;
+
+    await primasClient.user.update({
+      where: { id: userId },
+      data: {
+        room: undefined,
+      },
+    });
     console.log("Removed user!!");
   }
 
-  async getUser(roomId: string, userId: string) {
-    const room: Room | null = await inMemoryStore.getRoom(roomId);
-    if (!room) return;
-    return room.users.find((user: User) => user.id == userId);
-  }
-
-  async broadcast(roomId: string, userId: string, message: OutgoingMessage) {
-    const room: Room | null = await inMemoryStore.getRoom(roomId);
-    if (!room) {
-      console.error("Rom rom not found");
-      return;
-    }
-    const user: User | undefined = room.users.find(
-      (user: User) => user.id === userId
-    );
-    if (!user) {
-      console.error("User not found");
-      return;
-    }
-    room.users.forEach(({ conn, id }) => {
-      if (id !== userId) {
-        console.log("outgoing message " + JSON.stringify(message));
-        conn.sendUTF(JSON.stringify(message));
-      }
-    });
-  }
+  // async broadcast(roomId: string, userId: string, message: OutgoingMessage) {
+  //   const room: Room | null = await inMemoryStore.getRoom(roomId);
+  //   if (!room) {
+  //     console.error("Rom rom not found");
+  //     return;
+  //   }
+  //   const user: User | undefined = room.users.find(
+  //     (user: User) => user.id === userId
+  //   );
+  //   if (!user) {
+  //     console.error("User not found");
+  //     return;
+  //   }
+  //   room.users.forEach(({ conn, id }) => {
+  //     if (id !== userId) {
+  //       console.log("outgoing message " + JSON.stringify(message));
+  //       conn.sendUTF(JSON.stringify(message));
+  //     }
+  //   });
+  // }
 }
 
 export const userManager = UserManager.getInstance();
