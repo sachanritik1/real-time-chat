@@ -15,7 +15,7 @@ import { wsServer, app } from "./app";
 wsServer.on("request", function (request) {
   const connection = request.accept(null, request.origin);
   console.log(new Date() + " Connection accepted.");
-  connection.on("message", function (message) {
+  connection.on("message", async function (message) {
     if (message.type === "utf8") {
       try {
         const obj = JSON.parse(message.utf8Data);
@@ -41,7 +41,7 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
     userManager.addUser(payload.name, payload.roomId, payload.userId, socket);
   } else if (type === IncomingSupportedMessage.SendMessage) {
     const { roomId, userId, message } = payload;
-    const user = userManager.getUser(roomId, userId);
+    const user = await userManager.getUser(roomId, userId);
     if (!user) {
       console.log("User and room have mismatched!!!");
       return;

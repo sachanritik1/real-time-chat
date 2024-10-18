@@ -1,5 +1,7 @@
 import { connection } from "websocket";
 import { OutgoingMessage } from "./messages/outgoingMessages";
+import { getRedisClient } from "./redis";
+import { inMemoryStore, Room } from "./store/inMemoryStore";
 
 export interface User {
   id: string;
@@ -7,16 +9,11 @@ export interface User {
   conn: connection;
 }
 
-interface Room {
-  users: User[];
-}
+const redisClient = getRedisClient();
 
 class UserManager {
   private static instance: UserManager;
-  private map: Map<string, Room>; //roomId => user[]
-  private constructor() {
-    this.map = new Map<string, Room>();
-  }
+  private constructor() {}
 
   static getInstance() {
     if (!UserManager.instance) {
@@ -25,70 +22,86 @@ class UserManager {
     return UserManager.instance;
   }
 
-  addUser(name: string, roomId: string, userId: string, socket: connection) {
-    const room = this.map.get(roomId);
+  async addUser(
+    name: string,
+    roomId: string,
+    userId: string,
+    socket: connection
+  ) {
+    const room: Room | null = await inMemoryStore.getRoom(roomId);
+    if (!room) {
+      console.error("Room not found");
+      return;
+    }
     const user: User = {
       id: userId,
       name,
       conn: socket,
     };
-    if (!room) {
-      this.map.set(roomId, {
-        users: [user],
-      });
-    } else {
-      const userAlreadyExist = this.map
-        .get(roomId)
-        ?.users.find((user) => user.id === userId);
+    console.log("room", room);
+
+    if (room) {
+      const userAlreadyExist = room?.users?.find(
+        (_user: User) => _user?.id === userId
+      );
+      console.log("userAlreadyExist", userAlreadyExist);
       if (userAlreadyExist) {
         return;
       }
-      room.users.push(user);
+      const updatedRoom: Room = {
+        users: [...room?.users, user],
+        chats: room.chats,
+        roomId,
+      };
+      await redisClient.SET(roomId, JSON.stringify(updatedRoom));
+    } else {
+      const newRoom: Room = { chats: [], users: [user], roomId };
+      await redisClient.SET(roomId, JSON.stringify(newRoom));
     }
-    socket.on("close", (reasonCode, description) => {
-      this.removeUser(roomId, userId);
-    });
   }
 
-  removeUser(roomId: string, userId: string) {
-    const userToRemove = this.getUser(roomId, userId);
+  async removeUser(roomId: string, userId: string) {
+    const room: Room | null = await inMemoryStore.getRoom(roomId);
+
+    if (!room) return;
+    const userToRemove = room?.users?.find((user: User) => user.id === userId);
     if (!userToRemove) return;
-    let remainingUsers = this.map
-      .get(roomId)
-      ?.users.filter((user) => user.id == userId);
-    if (!remainingUsers) remainingUsers = [];
-    const room: Room = {
+    let remainingUsers =
+      room?.users.filter((user: User) => user.id !== userId) || [];
+
+    const updatedRoom: Room = {
       users: remainingUsers,
+      chats: room.chats,
+      roomId,
     };
-    this.map.set(roomId, room);
+    await redisClient.SET(roomId, JSON.stringify(updatedRoom));
     console.log("Removed user!!");
   }
 
-  getUser(roomId: string, userId: string) {
-    const room = this.map.get(roomId);
+  async getUser(roomId: string, userId: string) {
+    const room: Room | null = await inMemoryStore.getRoom(roomId);
     if (!room) return;
-    return room.users.find((user) => user.id == userId);
+    return room.users.find((user: User) => user.id == userId);
   }
 
-  broadcast(roomId: string, userId: string, message: OutgoingMessage) {
-    const user = this.getUser(roomId, userId);
-    if (!user) {
-      console.error("User not found");
-      return;
-    }
-
-    const room = this.map.get(roomId);
+  async broadcast(roomId: string, userId: string, message: OutgoingMessage) {
+    const room: Room | null = await inMemoryStore.getRoom(roomId);
     if (!room) {
       console.error("Rom rom not found");
       return;
     }
-
+    const user: User | undefined = room.users.find(
+      (user: User) => user.id === userId
+    );
+    if (!user) {
+      console.error("User not found");
+      return;
+    }
     room.users.forEach(({ conn, id }) => {
-      // if (id === userId) {
-      //   return;
-      // }
-      console.log("outgoing message " + JSON.stringify(message));
-      conn.sendUTF(JSON.stringify(message));
+      if (id !== userId) {
+        console.log("outgoing message " + JSON.stringify(message));
+        conn.sendUTF(JSON.stringify(message));
+      }
     });
   }
 }

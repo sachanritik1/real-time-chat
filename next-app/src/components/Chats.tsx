@@ -14,7 +14,7 @@ const Chats = () => {
 
   useEffect(() => {
     if (!ws) return;
-    ws.onmessage = (message) => {
+    ws.onmessage = async (message) => {
       console.log(message.data);
       const outgoingMessage = JSON.parse(message.data);
       if (outgoingMessage.type === SupportedOutgoingMessage.AddChat) {

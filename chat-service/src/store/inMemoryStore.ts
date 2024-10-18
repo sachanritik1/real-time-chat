@@ -1,10 +1,12 @@
 import { getRedisClient } from "../redis";
+import { User } from "../userManager";
 import { Chat, Store, userId } from "./store";
 let globalChatId = 0;
 
 export interface Room {
   roomId: string;
   chats: Chat[];
+  users: User[];
 }
 
 const redisClient = getRedisClient();
@@ -26,7 +28,7 @@ class InMemoryStore implements Store {
     const room = await redisClient.GET(roomId);
     if (room) return false; // Room already exists in Redis
 
-    const newRoom: Room = { roomId, chats: [] };
+    const newRoom: Room = { roomId, chats: [], users: [] };
     await redisClient.SET(roomId, JSON.stringify(newRoom));
     return true;
   }
@@ -113,7 +115,7 @@ class InMemoryStore implements Store {
     const subscriber = redisClient.duplicate();
     await subscriber.connect();
 
-    await subscriber.SUBSCRIBE(roomId, (message) => {
+    await subscriber.SUBSCRIBE(roomId, async (message) => {
       const chat = JSON.parse(message);
       // Broadcast this chat to all users connected to this server
       console.log(`New message in room ${roomId}: ${chat.message}`);
