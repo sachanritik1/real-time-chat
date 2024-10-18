@@ -90,9 +90,9 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
   }
 }
 
-app.post("/create/room", function (req, res) {
+app.post("/create/room", async function (req, res) {
   const roomId = req.body.roomId;
-  const room = store.initRoom(roomId);
+  const room = await store.initRoom(roomId);
   if (!room) {
     res.status(400).json({ message: "Room already exists" });
     return;
