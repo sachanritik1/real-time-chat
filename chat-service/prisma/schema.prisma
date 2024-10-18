@@ -20,9 +20,9 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Chat      Chat[]
-  Room      Room[]
-  UpVotes   UpVote[] @relation(map: "UpVotes_user_fkey")
+  chats      Chat[]
+  rooms      Room[]
+  upVotes   UpVote[] @relation(map: "UpVotes_user_fkey")
 }
 
 model Chat {
@@ -31,8 +31,8 @@ model Chat {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [id], references: [id], map: "Chat_user_fkey")
-  Room      Room     @relation(fields: [id], references: [id], map: "Chat_room_fkey")
-  UpVotes   UpVote[] @relation(map: "UpVotes_chat_fkey")
+  room      Room     @relation(fields: [id], references: [id], map: "Chat_room_fkey")
+  upVotes   UpVote[] @relation(map: "UpVotes_chat_fkey")
 }
 
 model Room{
@@ -41,7 +41,7 @@ model Room{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   users     User[]
-  Chats     Chat[]
+  chats     Chat[]
 }
 
 model UpVote{
@@ -49,5 +49,5 @@ model UpVote{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [id], references: [id], map: "UpVotes_user_fkey")
-  Chat      Chat     @relation(fields: [id], references: [id], map: "UpVotes_chat_fkey")
+  chat      Chat     @relation(fields: [id], references: [id], map: "UpVotes_chat_fkey")
 }
