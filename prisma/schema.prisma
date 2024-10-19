@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,9 +14,12 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  chats     Chat[]   @relation(map: "Chat_user_fkey")
-  room      Room?    @relation(fields: [id], references: [id], map: "User_room_fkey")
-  upVotes   UpVote[] @relation(map: "UpVotes_user_fkey")
+
+  // Relations
+  chats     Chat[]   // One-to-many relation with Chat
+  roomId    String?  // Nullable foreign key to Room
+  room      Room?    @relation(fields: [roomId], references: [id])
+  upVotes   UpVote[] // One-to-many relation with UpVote
 }
 
 model Chat {
@@ -30,24 +27,34 @@ model Chat {
   message   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [id], references: [id], map: "Chat_user_fkey")
-  room      Room     @relation(fields: [id], references: [id], map: "Chat_room_fkey")
-  upVotes   UpVote[] @relation(map: "UpVotes_chat_fkey")
+
+  // Relations
+  userId    String   // Foreign key to User
+  user      User     @relation(fields: [userId], references: [id])
+  roomId    String   // Foreign key to Room
+  room      Room     @relation(fields: [roomId], references: [id])
+  upVotes   UpVote[] // One-to-many relation with UpVote
 }
 
-model Room{
+model Room {
   id        String   @id @default(cuid())
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  users     User[]
-  chats     Chat[]
+
+  // Relations
+  users     User[]   // One-to-many relation with User
+  chats     Chat[]   // One-to-many relation with Chat
 }
 
-model UpVote{
+model UpVote {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [id], references: [id], map: "UpVotes_user_fkey")
-  chat      Chat     @relation(fields: [id], references: [id], map: "UpVotes_chat_fkey")
+
+  // Relations
+  userId    String   // Foreign key to User
+  user      User     @relation(fields: [userId], references: [id])
+  chatId    String   // Foreign key to Chat
+  chat      Chat     @relation(fields: [chatId], references: [id])
 }
