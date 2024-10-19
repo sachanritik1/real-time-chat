@@ -1,6 +1,6 @@
-import { Chat, Room } from "@prisma/client";
+import { Chat } from "@prisma/client";
 import { getPrismaClient } from "../prisma";
-import { getPublishClient, getSubscribeClient } from "../redis";
+import { getPublishClient } from "../redis";
 import { Store } from "./store";
 
 let globalChatId = 0;
@@ -32,7 +32,7 @@ class InMemoryStore implements Store {
   }
 
   // 2. Get a room
-  async getRoom(roomId: string): Promise<Room | null> {
+  async getRoom(roomId: string) {
     const room = await prismaClient.room.findUnique({
       where: { id: roomId },
     });
@@ -40,11 +40,7 @@ class InMemoryStore implements Store {
   }
 
   // 3. Fetch chat history with limit and offset
-  async getChats(
-    roomId: string,
-    limit: number,
-    offset: number
-  ): Promise<Chat[]> {
+  async getChats(roomId: string, limit: number, offset: number) {
     const chats: Chat[] = await prismaClient.chat.findMany({
       where: { room: { id: roomId } },
       orderBy: { createdAt: "desc" },
@@ -61,11 +57,7 @@ class InMemoryStore implements Store {
     return rooms;
   }
 
-  async addChat(
-    roomId: string,
-    userId: string,
-    message: string
-  ): Promise<Chat | null> {
+  async addChat(roomId: string, userId: string, message: string) {
     // Create a new chat message
     const chat = {
       id: String(globalChatId++),
@@ -84,7 +76,6 @@ class InMemoryStore implements Store {
 
     // Publish the chat to redis pub/sub for real-time chats
     await publishClient.PUBLISH(roomId, JSON.stringify({ chat, userId }));
-    return chat;
   }
 }
 

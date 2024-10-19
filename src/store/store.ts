@@ -1,13 +1,3 @@
-// export type userId = string;
-
-// export interface Chat {
-//   chatId: string;
-//   userId: string;
-//   message: string;
-//   upvotes: userId[];
-//   createdAt: Date;
-// }
-
 export abstract class Store {
   constructor() {}
   initRoom(roomId: string) {}

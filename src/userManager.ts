@@ -3,18 +3,11 @@ import {
   OutgoingMessage,
   SupportedMessage as OutgoingSupportedMessages,
 } from "./messages/outgoingMessages";
-import { getPublishClient, getSubscribeClient } from "./redis";
+import { getSubscribeClient } from "./redis";
 import { inMemoryStore } from "./store/inMemoryStore";
 import { Room } from "@prisma/client";
 import { getPrismaClient } from "./prisma";
 
-// export interface User {
-//   id: string;
-//   name: string;
-//   conn: connection;
-// }
-
-const publishClient = getPublishClient();
 const subscribeClient = getSubscribeClient();
 const prismaClient = getPrismaClient();
 

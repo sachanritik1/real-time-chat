@@ -40,7 +40,7 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
     userManager.addUser(payload.name, payload.roomId, payload.userId, socket);
   } else if (type === IncomingSupportedMessage.SendMessage) {
     const { roomId, userId, message } = payload;
-    const chat = await store.addChat(roomId, userId, message);
+    await store.addChat(roomId, userId, message);
   } else {
     console.log("unsupported message type");
     return;
