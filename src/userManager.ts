@@ -42,7 +42,7 @@ class UserManager {
 
   async subscribeToRoom(roomId: string, socket: connection) {
     await subscribeClient.SUBSCRIBE(roomId, (message) => {
-      console.log("Message received in room", roomId, message);
+      console.log("Message received in room", roomId, JSON.parse(message));
       const { chat, userId } = JSON.parse(message);
 
       const outgoingPayload: OutgoingMessage = {
