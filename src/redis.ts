@@ -7,24 +7,54 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const url = process.env.REDIS_URL || "redis://localhost:6379";
 
-let redisClient: RedisClientType;
+// Singleton pattern for the Redis clients
+let publishClient: RedisClientType | null = null;
+let subscribeClient: RedisClientType | null = null;
 
-export function getRedisClient() {
-  if (redisClient) return redisClient;
+// Create a Redis publish client
+export function getPublishClient() {
+  if (publishClient) return publishClient;
 
-  redisClient = createClient({
+  publishClient = createClient({
     url: url,
   });
-  try {
-    (async () => {
-      redisClient.on("error", (err: any) =>
-        console.log("Redis Client Error", err)
+
+  // Connect and set up error handling
+  (async () => {
+    try {
+      publishClient.on("error", (err) =>
+        console.log("Publish Client Error", err)
       );
-      await redisClient.connect();
-      console.log("Redis connected with: ", url);
-    })();
-  } catch (e) {
-    console.log(e);
-  }
-  return redisClient;
+      await publishClient.connect();
+      console.log("Publish client connected to Redis:", url);
+    } catch (e) {
+      console.error("Error connecting publish client:", e);
+    }
+  })();
+
+  return publishClient;
+}
+
+// Create a Redis subscribe client
+export function getSubscribeClient() {
+  if (subscribeClient) return subscribeClient;
+
+  subscribeClient = createClient({
+    url: url,
+  });
+
+  // Connect and set up error handling
+  (async () => {
+    try {
+      subscribeClient.on("error", (err) =>
+        console.log("Subscribe Client Error", err)
+      );
+      await subscribeClient.connect();
+      console.log("Subscribe client connected to Redis:", url);
+    } catch (e) {
+      console.error("Error connecting subscribe client:", e);
+    }
+  })();
+
+  return subscribeClient;
 }

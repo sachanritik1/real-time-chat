@@ -3,9 +3,9 @@ import {
   OutgoingMessage,
   SupportedMessage as OutgoingSupportedMessages,
 } from "./messages/outgoingMessages";
-import { getRedisClient } from "./redis";
+import { getPublishClient, getSubscribeClient } from "./redis";
 import { inMemoryStore } from "./store/inMemoryStore";
-import { PrismaClient, Room, User } from "@prisma/client";
+import { Room } from "@prisma/client";
 import { getPrismaClient } from "./prisma";
 
 // export interface User {
@@ -14,8 +14,9 @@ import { getPrismaClient } from "./prisma";
 //   conn: connection;
 // }
 
-const redisClient = getRedisClient();
-const primasClient = getPrismaClient();
+const publishClient = getPublishClient();
+const subscribeClient = getSubscribeClient();
+const prismaClient = getPrismaClient();
 
 class UserManager {
   private static instance: UserManager;
@@ -33,16 +34,15 @@ class UserManager {
     if (roomId) {
       where.room = { id: roomId };
     }
-    const user = await primasClient.user?.findUnique({
+    const user = await prismaClient.user?.findUnique({
       where,
     });
     return user;
   }
 
   async subscribeToRoom(roomId: string, socket: connection) {
-    await redisClient.SUBSCRIBE(roomId, (message) => {
+    await subscribeClient.SUBSCRIBE(roomId, (message) => {
       console.log("Message received in room", roomId, message);
-
       const { chat, userId } = JSON.parse(message);
 
       const outgoingPayload: OutgoingMessage = {
@@ -72,7 +72,16 @@ class UserManager {
 
     _roomId = await inMemoryStore.initRoom(roomId);
 
-    await primasClient.user.update({
+    console.log("user id", userId);
+
+    const user = await prismaClient.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      console.log("User not found");
+      return;
+    }
+
+    await prismaClient.user.update({
       where: { id: userId },
       data: {
         room: {
@@ -93,7 +102,7 @@ class UserManager {
     const userToRemove = await this.getUser(userId, roomId);
     if (!userToRemove) return;
 
-    await primasClient.user.update({
+    await prismaClient.user.update({
       where: { id: userId },
       data: {
         room: undefined,

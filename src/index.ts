@@ -6,11 +6,10 @@ import {
 } from "./messages/incomingMessages";
 import { userManager } from "./userManager";
 import { inMemoryStore as store } from "./store/inMemoryStore";
-import {
-  OutgoingMessage,
-  SupportedMessage as OutgoingSupportedMessages,
-} from "./messages/outgoingMessages";
 import { wsServer, app } from "./app";
+import { getPrismaClient } from "./prisma";
+
+const prismaClient = getPrismaClient();
 
 wsServer.on("request", function (request) {
   const connection = request.accept(null, request.origin);
@@ -41,11 +40,6 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
     userManager.addUser(payload.name, payload.roomId, payload.userId, socket);
   } else if (type === IncomingSupportedMessage.SendMessage) {
     const { roomId, userId, message } = payload;
-    const user = await userManager.getUser(roomId, userId);
-    if (!user) {
-      console.log("User and room have mismatched!!!");
-      return;
-    }
     const chat = await store.addChat(roomId, userId, message);
     if (!chat) {
       console.log("Chat not found");
@@ -80,12 +74,12 @@ app.post("/create/room", async function (req, res) {
 });
 
 app.get("/rooms", async function (req, res) {
-  const roomIds = await store.getRoomIds();
-  if (!roomIds) {
+  const rooms = await store.getRooms();
+  if (!rooms) {
     res.status(400).json({ message: "No rooms found" });
     return;
   }
-  res.status(200).json({ roomIds: roomIds });
+  res.status(200).json({ rooms });
 });
 
 app.get("/room/:roomId", async function (req, res) {
@@ -96,4 +90,23 @@ app.get("/room/:roomId", async function (req, res) {
     return;
   }
   res.status(200).json({ room });
+});
+
+app.post("/login", async function (req, res) {
+  const { name, id } = req.body;
+  const user = await prismaClient.user.findUnique({ where: { id } });
+  if (user) {
+    res.status(200).json({ user });
+    return;
+  }
+  const newUser = await prismaClient.user.create({
+    data: {
+      id,
+      name,
+      email: new Date().getTime() + "@gmail.com",
+      password: "",
+    },
+  });
+
+  return res.status(200).json(newUser);
 });

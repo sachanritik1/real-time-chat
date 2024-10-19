@@ -1,7 +1,8 @@
 import { Chat, Room } from "@prisma/client";
 import { getPrismaClient } from "../prisma";
-import { getRedisClient } from "../redis";
+import { getPublishClient, getSubscribeClient } from "../redis";
 import { Store } from "./store";
+
 let globalChatId = 0;
 
 // export interface Room {
@@ -10,8 +11,9 @@ let globalChatId = 0;
 //   users: User[];
 // }
 
-const redisClient = getRedisClient();
-const primaClient = getPrismaClient();
+const publishClient = getPublishClient();
+const subscribeClient = getSubscribeClient();
+const prismaClient = getPrismaClient();
 
 class InMemoryStore implements Store {
   private static instance: InMemoryStore;
@@ -27,18 +29,18 @@ class InMemoryStore implements Store {
 
   // 1. Initialize a room in Redis
   async initRoom(roomId: string) {
-    let room = await primaClient.room.findUnique({
+    let room = await prismaClient.room.findUnique({
       where: { id: roomId },
     });
     if (!room) {
-      room = await primaClient.room.create({ data: { name: roomId } });
+      room = await prismaClient.room.create({ data: { name: roomId } });
     }
     return room?.id;
   }
 
   // 2. Get a room
   async getRoom(roomId: string): Promise<Room | null> {
-    const room = await primaClient.room.findUnique({
+    const room = await prismaClient.room.findUnique({
       where: { id: roomId },
     });
     return room;
@@ -50,7 +52,7 @@ class InMemoryStore implements Store {
     limit: number,
     offset: number
   ): Promise<Chat[]> {
-    const chats: Chat[] = await primaClient.chat.findMany({
+    const chats: Chat[] = await prismaClient.chat.findMany({
       where: { room: { id: roomId } },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -62,7 +64,7 @@ class InMemoryStore implements Store {
   getChatLimitOffset() {}
 
   async getRooms() {
-    const rooms = await primaClient.room.findMany();
+    const rooms = await prismaClient.room.findMany();
     return rooms;
   }
 
@@ -87,16 +89,18 @@ class InMemoryStore implements Store {
       message,
       createdAt: new Date(),
       updatedAt: new Date(),
+      userId,
+      roomId,
     };
 
     // push in buffer
-    await redisClient.RPUSH(
+    await publishClient.RPUSH(
       "chatBuffer",
       JSON.stringify({ chat, roomId, userId })
     );
 
     // Publish the new chat to Redis Pub/Sub
-    await redisClient.PUBLISH(roomId, JSON.stringify({ chat, userId }));
+    await publishClient.PUBLISH(roomId, JSON.stringify({ chat, userId }));
     return chat;
   }
 }
