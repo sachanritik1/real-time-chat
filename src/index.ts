@@ -18,7 +18,7 @@ wsServer.on("request", function (request) {
     if (message.type === "utf8") {
       try {
         const obj = JSON.parse(message.utf8Data);
-        MessageHandler(connection, obj);
+        await MessageHandler(connection, obj);
       } catch (e) {
         console.log(e);
       }
@@ -37,7 +37,12 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
 
   const { type, payload } = message;
   if (type === IncomingSupportedMessage.JoinRoom) {
-    userManager.addUser(payload.name, payload.roomId, payload.userId, socket);
+    await userManager.addUser(
+      payload.name,
+      payload.roomId,
+      payload.userId,
+      socket
+    );
   } else if (type === IncomingSupportedMessage.SendMessage) {
     const { roomId, userId, message } = payload;
     await store.addChat(roomId, userId, message);
