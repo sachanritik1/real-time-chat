@@ -84,7 +84,7 @@ class InMemoryStore implements Store {
     // publish the chat to redis pub/sub for real-time chats
 
     // Create a new chat message
-    const chat: Chat = {
+    const chat = {
       id: String(globalChatId++),
       message,
       createdAt: new Date(),
