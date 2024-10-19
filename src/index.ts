@@ -41,22 +41,6 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
   } else if (type === IncomingSupportedMessage.SendMessage) {
     const { roomId, userId, message } = payload;
     const chat = await store.addChat(roomId, userId, message);
-    if (!chat) {
-      console.log("Chat not found");
-      return;
-    }
-    // const outgoingPayload: OutgoingMessage = {
-    //   type: OutgoingSupportedMessages.AddChat,
-    //   payload: {
-    //     chatId: chat?.id,
-    //     roomId: payload.roomId,
-    //     userId: payload.userId,
-    //     message: payload.message,
-    //     name: user.name,
-    //     upvotes: 0,
-    //   },
-    // };
-    // userManager.broadcast(payload.roomId, payload.userId, outgoingPayload);
   } else {
     console.log("unsupported message type");
     return;
@@ -66,29 +50,17 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
 app.post("/create/room", async function (req, res) {
   const roomId = req.body.roomId;
   const room = await store.initRoom(roomId);
-  if (!room) {
-    res.status(400).json({ message: "Room already exists" });
-    return;
-  }
-  res.status(200).json({ roomId });
+  res.status(200).json({ room });
 });
 
 app.get("/rooms", async function (req, res) {
   const rooms = await store.getRooms();
-  if (!rooms) {
-    res.status(400).json({ message: "No rooms found" });
-    return;
-  }
   res.status(200).json({ rooms });
 });
 
 app.get("/room/:roomId", async function (req, res) {
   const roomId = req.params.roomId;
   const room = await store.getRoom(roomId);
-  if (!room) {
-    res.status(400).json({ message: "Room not found" });
-    return;
-  }
   res.status(200).json({ room });
 });
 
@@ -99,6 +71,7 @@ app.post("/login", async function (req, res) {
     res.status(200).json({ user });
     return;
   }
+
   const newUser = await prismaClient.user.create({
     data: {
       id,
@@ -107,6 +80,5 @@ app.post("/login", async function (req, res) {
       password: "",
     },
   });
-
   return res.status(200).json(newUser);
 });

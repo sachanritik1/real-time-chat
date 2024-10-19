@@ -67,15 +67,10 @@ class UserManager {
     socket: connection
   ) {
     const room = await inMemoryStore.getRoom(roomId);
-    let _roomId = room?.id;
     if (!room) return;
 
-    _roomId = await inMemoryStore.initRoom(roomId);
-
     console.log("user id", userId);
-
     const user = await prismaClient.user.findUnique({ where: { id: userId } });
-
     if (!user) {
       console.log("User not found");
       return;
@@ -86,7 +81,7 @@ class UserManager {
       data: {
         room: {
           connect: {
-            id: _roomId,
+            id: room?.id,
           },
         },
       },
@@ -110,27 +105,6 @@ class UserManager {
     });
     console.log("Removed user!!");
   }
-
-  // async broadcast(roomId: string, userId: string, message: OutgoingMessage) {
-  //   const room: Room | null = await inMemoryStore.getRoom(roomId);
-  //   if (!room) {
-  //     console.error("Rom rom not found");
-  //     return;
-  //   }
-  //   const user: User | undefined = room.users.find(
-  //     (user: User) => user.id === userId
-  //   );
-  //   if (!user) {
-  //     console.error("User not found");
-  //     return;
-  //   }
-  //   room.users.forEach(({ conn, id }) => {
-  //     if (id !== userId) {
-  //       console.log("outgoing message " + JSON.stringify(message));
-  //       conn.sendUTF(JSON.stringify(message));
-  //     }
-  //   });
-  // }
 }
 
 export const userManager = UserManager.getInstance();
