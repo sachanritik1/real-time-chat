@@ -21,12 +21,12 @@ class InMemoryStore implements Store {
   }
 
   // 1. Initialize a room in Redis
-  async initRoom(roomId: string) {
-    let room = await prismaClient.room.findUnique({
-      where: { id: roomId },
+  async initRoom(name: string) {
+    let room = await prismaClient.room.findFirst({
+      where: { name },
     });
     if (!room) {
-      room = await prismaClient.room.create({ data: { name: roomId } });
+      room = await prismaClient.room.create({ data: { name } });
     }
     return room;
   }

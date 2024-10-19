@@ -53,8 +53,8 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
 }
 
 app.post("/create/room", async function (req, res) {
-  const roomId = req.body.roomId;
-  const room = await store.initRoom(roomId);
+  const name = req.body.name;
+  const room = await store.initRoom(name);
   res.status(200).json({ room });
 });
 
