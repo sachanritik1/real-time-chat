@@ -1,14 +1,9 @@
 import { connection } from "websocket";
-import {
-  OutgoingMessage,
-  SupportedMessage as OutgoingSupportedMessages,
-} from "./messages/outgoingMessages";
-import { getSubscribeClient } from "./redis";
 import { inMemoryStore } from "./store/inMemoryStore";
 import { Room } from "@prisma/client";
 import { getPrismaClient } from "./prisma";
+import { subscribeToRoom } from "./store/subscriptions";
 
-const subscribeClient = getSubscribeClient();
 const prismaClient = getPrismaClient();
 
 class UserManager {
@@ -31,26 +26,6 @@ class UserManager {
       where,
     });
     return user;
-  }
-
-  async subscribeToRoom(roomId: string, socket: connection) {
-    await subscribeClient.SUBSCRIBE(roomId, (message) => {
-      console.log("Message received in room", roomId, JSON.parse(message));
-      const { chat, userId } = JSON.parse(message);
-
-      const outgoingPayload: OutgoingMessage = {
-        type: OutgoingSupportedMessages.AddChat,
-        payload: {
-          chatId: chat?.id,
-          roomId: roomId,
-          userId: userId,
-          message: chat.message,
-          name: userId,
-          upvotes: 0,
-        },
-      };
-      socket.sendUTF(JSON.stringify(outgoingPayload));
-    });
   }
 
   async addUser(
@@ -80,7 +55,7 @@ class UserManager {
       },
     });
 
-    await this.subscribeToRoom(roomId, socket);
+    await subscribeToRoom(roomId, socket);
   }
 
   async removeUser(roomId: string, userId: string) {
