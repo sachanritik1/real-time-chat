@@ -80,7 +80,7 @@ app.get("/room/:roomId", async function (req, res) {
 
 app.post("/login", async function (req, res) {
   const { name, id } = req.body;
-  const userId = id?.tolowerCase();
+  const userId = id?.toString()?.toLowerCase();
 
   const user = await prismaClient.user.findUnique({ where: { id: userId } });
   if (user) {
