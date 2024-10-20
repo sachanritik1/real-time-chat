@@ -80,7 +80,9 @@ app.get("/room/:roomId", async function (req, res) {
 
 app.post("/login", async function (req, res) {
   const { name, id } = req.body;
-  const user = await prismaClient.user.findUnique({ where: { id } });
+  const userId = id?.tolowerCase();
+
+  const user = await prismaClient.user.findUnique({ where: { id: userId } });
   if (user) {
     res.status(200).json({ user });
     return;
@@ -88,7 +90,7 @@ app.post("/login", async function (req, res) {
 
   const newUser = await prismaClient.user.create({
     data: {
-      id,
+      id: userId,
       name,
       email: new Date().getTime() + "@gmail.com",
       password: "",
