@@ -18,7 +18,7 @@ model User {
   // Relations
   chats     Chat[]   // One-to-many relation with Chat
   roomId    String?  // Nullable foreign key to Room
-  room      Room?    @relation(fields: [roomId], references: [id])
+  room      Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
   upVotes   UpVote[] // One-to-many relation with UpVote
 }
 
