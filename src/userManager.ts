@@ -38,18 +38,15 @@ class UserManager {
     if (!room) return null;
 
     console.log("user id", userId);
-    const user = await prismaClient.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      console.log("User not found");
-      return null;
-    }
 
-    await prismaClient.user.update({
+    const user = await prismaClient.user.update({
       where: { id: userId },
       data: {
         room: { connect: { id: roomId } },
       },
     });
+
+    console.log("user id", user);
 
     await subscribeToRoom(roomId, socket);
 
