@@ -35,13 +35,13 @@ class UserManager {
     socket: connection
   ) {
     const room = await inMemoryStore.getRoom(roomId);
-    if (!room) return;
+    if (!room) return null;
 
     console.log("user id", userId);
     const user = await prismaClient.user.findUnique({ where: { id: userId } });
     if (!user) {
       console.log("User not found");
-      return;
+      return null;
     }
 
     await prismaClient.user.update({
@@ -56,6 +56,8 @@ class UserManager {
     });
 
     await subscribeToRoom(roomId, socket);
+
+    return room;
   }
 
   async removeUser(roomId: string, userId: string) {

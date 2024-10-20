@@ -8,6 +8,7 @@ import { userManager } from "./userManager";
 import { inMemoryStore as store } from "./store/inMemoryStore";
 import { wsServer, app } from "./app";
 import { getPrismaClient } from "./prisma";
+import { SupportedMessage as OutgoingSupportedMessage } from "./messages/outgoingMessages";
 
 const prismaClient = getPrismaClient();
 
@@ -37,12 +38,20 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
 
   const { type, payload } = message;
   if (type === IncomingSupportedMessage.JoinRoom) {
-    await userManager.addUser(
+    const room = await userManager.addUser(
       payload.name,
       payload.roomId,
       payload.userId,
       socket
     );
+    if (room) {
+      socket.send(
+        JSON.stringify({
+          type: OutgoingSupportedMessage.JoinedRoom,
+          payload: room,
+        })
+      );
+    }
   } else if (type === IncomingSupportedMessage.SendMessage) {
     const { roomId, userId, message } = payload;
     await store.addChat(roomId, userId, message);

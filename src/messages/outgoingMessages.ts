@@ -1,6 +1,9 @@
+import { Room } from "@prisma/client";
+
 export enum SupportedMessage {
   AddChat = "ADD_CHAT",
   UpdateChat = "UPDATE_CHAT",
+  JoinedRoom = "JOINED_ROOM",
 }
 
 type MessagePayload = {
@@ -20,4 +23,8 @@ export type OutgoingMessage =
   | {
       type: SupportedMessage.UpdateChat;
       payload: Partial<MessagePayload>;
+    }
+  | {
+      type: SupportedMessage.JoinedRoom;
+      payload: Room;
     };
