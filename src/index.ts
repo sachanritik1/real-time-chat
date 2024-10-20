@@ -94,5 +94,5 @@ app.post("/login", async function (req, res) {
       password: "",
     },
   });
-  return res.status(200).json(newUser);
+  return res.status(200).json({ user: newUser });
 });
