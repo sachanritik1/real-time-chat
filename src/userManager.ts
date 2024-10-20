@@ -28,12 +28,7 @@ class UserManager {
     return user;
   }
 
-  async addUser(
-    name: string,
-    roomId: string,
-    userId: string,
-    socket: connection
-  ) {
+  async addUser(roomId: string, userId: string, socket: connection) {
     const room = await inMemoryStore.getRoom(roomId);
     if (!room) return null;
 

@@ -39,7 +39,6 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
   const { type, payload } = message;
   if (type === IncomingSupportedMessage.JoinRoom) {
     const room = await userManager.addUser(
-      payload.name,
       payload.roomId,
       payload.userId,
       socket
