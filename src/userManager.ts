@@ -66,6 +66,7 @@ class UserManager {
     await prismaClient.user.update({
       where: { id: userId },
       data: {
+        // @ts-ignore
         room: { disconnect: true },
       },
     });
