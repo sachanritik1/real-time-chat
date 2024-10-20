@@ -47,11 +47,7 @@ class UserManager {
     await prismaClient.user.update({
       where: { id: userId },
       data: {
-        room: {
-          connect: {
-            id: room?.id,
-          },
-        },
+        roomId,
       },
     });
 
@@ -70,7 +66,7 @@ class UserManager {
     await prismaClient.user.update({
       where: { id: userId },
       data: {
-        room: undefined,
+        roomId: undefined,
       },
     });
     console.log("Removed user!!");
