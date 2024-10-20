@@ -3,8 +3,6 @@ import { getPrismaClient } from "../prisma";
 import { getPublishClient } from "../redis";
 import { Store } from "./store";
 
-let globalChatId = 0;
-
 const publishClient = getPublishClient();
 const prismaClient = getPrismaClient();
 
@@ -22,12 +20,7 @@ class InMemoryStore implements Store {
 
   // 1. Initialize a room in Redis
   async initRoom(name: string) {
-    let room = await prismaClient.room.findFirst({
-      where: { name },
-    });
-    if (!room) {
-      room = await prismaClient.room.create({ data: { name } });
-    }
+    const room = await prismaClient.room.create({ data: { name } });
     return room;
   }
 
@@ -60,7 +53,7 @@ class InMemoryStore implements Store {
   async addChat(roomId: string, userId: string, message: string) {
     // Create a new chat message
     const chat = {
-      id: String(globalChatId++),
+      id: Date.now().toString() + Math.random().toFixed(5).toString(),
       message,
       createdAt: new Date(),
       updatedAt: new Date(),
