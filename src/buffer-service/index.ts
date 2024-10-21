@@ -10,7 +10,7 @@ const saveChatsToDatabase = async () => {
   const chats = await publishClient.lRange("chatBuffer", 0, -1);
 
   if (chats.length === 0) {
-    console.log("No chats to save at the moment.", new Date());
+    console.log(new Date() + "No chats to save at the moment.");
     return;
   }
 
