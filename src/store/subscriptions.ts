@@ -30,7 +30,7 @@ export async function subscribeToRoom(roomId: string, socket: connection) {
         roomId: roomId,
         userId: userId,
         message: chat.message,
-        name: userId,
+        name: chat?.name,
         upvotes: 0,
       },
     };

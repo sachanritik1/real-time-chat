@@ -23,6 +23,7 @@ export const UserMessage = z.object({
   message: z.string(),
   userId: z.string(),
   roomId: z.string(),
+  name: z.string(),
 });
 
 export type UserMessageType = z.infer<typeof UserMessage>;

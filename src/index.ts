@@ -53,8 +53,8 @@ async function MessageHandler(socket: connection, message: IncomingMessage) {
       );
     }
   } else if (type === IncomingSupportedMessage.SendMessage) {
-    const { roomId, userId, message } = payload;
-    await store.addChat(roomId, userId, message);
+    const { roomId, userId, message, name } = payload;
+    await store.addChat(roomId, userId, message, name);
   } else {
     console.log("unsupported message type");
     return;
@@ -105,4 +105,16 @@ app.post("/login", async function (req, res) {
     res.status(400).json({ e });
     console.log(e);
   }
+});
+
+app.get("/chat/:roomId", async function (req, res) {
+  const roomId = req.params.roomId;
+  const chats = await store.getChats(roomId, 100, 0);
+  const response = chats.map((chat) => {
+    return {
+      ...chat,
+      name: chat.user.name,
+    };
+  });
+  res.status(200).json({ chats: response });
 });

@@ -15,7 +15,17 @@ const saveChatsToDatabase = async () => {
   }
 
   // Parse chats from Redis and prepare them for bulk insertion
-  const parsedChats: Chat[] = chats.map((chat) => JSON.parse(chat)?.chat);
+  const parsedChats: Chat[] = chats.map((chat) => {
+    const _chat = JSON.parse(chat)?.chat;
+    return {
+      id: _chat.id,
+      userId: _chat.userId,
+      roomId: _chat.roomId,
+      message: _chat.message,
+      createdAt: new Date(_chat.createdAt),
+      updatedAt: new Date(_chat.updatedAt),
+    };
+  });
 
   const existingUsers = await prismaClient.user.findMany({
     where: { id: { in: parsedChats.map((chat) => chat.userId) } },

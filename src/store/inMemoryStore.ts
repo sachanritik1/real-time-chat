@@ -34,8 +34,9 @@ class InMemoryStore implements Store {
 
   // 3. Fetch chat history with limit and offset
   async getChats(roomId: string, limit: number, offset: number) {
-    const chats: Chat[] = await prismaClient.chat.findMany({
+    const chats = await prismaClient.chat.findMany({
       where: { room: { id: roomId } },
+      include: { user: true, room: true },
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: offset,
@@ -50,7 +51,7 @@ class InMemoryStore implements Store {
     return rooms;
   }
 
-  async addChat(roomId: string, userId: string, message: string) {
+  async addChat(roomId: string, userId: string, message: string, name: string) {
     // Create a new chat message
     const chat = {
       id: Date.now().toString() + Math.random().toFixed(5).toString(),
@@ -59,6 +60,7 @@ class InMemoryStore implements Store {
       updatedAt: new Date(),
       userId,
       roomId,
+      name,
     };
 
     // add chat to redis buffer to bulk save on db later
@@ -68,7 +70,21 @@ class InMemoryStore implements Store {
     );
 
     // Publish the chat to redis pub/sub for real-time chats
-    await publishClient.PUBLISH(roomId, JSON.stringify({ chat, userId }));
+    await publishClient.PUBLISH(
+      roomId,
+      JSON.stringify({
+        chat: {
+          id: chat.id,
+          message: chat.message,
+          createdAt: chat.createdAt,
+          updatedAt: chat.updatedAt,
+          userId: chat.userId,
+          roomId: chat.roomId,
+          name: chat.name,
+        },
+        userId,
+      })
+    );
   }
 }
 
