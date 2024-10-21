@@ -9,6 +9,7 @@ import { inMemoryStore as store } from "./store/inMemoryStore";
 import { wsServer, app } from "./app";
 import { getPrismaClient } from "./prisma";
 import { SupportedMessage as OutgoingSupportedMessage } from "./messages/outgoingMessages";
+import { z } from "zod";
 
 const prismaClient = getPrismaClient();
 
@@ -78,22 +79,29 @@ app.get("/room/:roomId", async function (req, res) {
 });
 
 app.post("/login", async function (req, res) {
-  const { name, id } = req.body;
-  const userId = id?.toString()?.toLowerCase()?.trim();
+  try {
+    const { name, email } = z
+      .object({
+        name: z.string(),
+        email: z.string().email(),
+      })
+      .parse(req.body);
 
-  const user = await prismaClient.user.findUnique({ where: { id: userId } });
-  if (user) {
-    res.status(200).json({ user });
-    return;
+    const user = await prismaClient.user.findUnique({ where: { email } });
+    if (user) {
+      res.status(200).json({ user });
+      return;
+    }
+
+    const newUser = await prismaClient.user.create({
+      data: {
+        name,
+        email,
+        password: "",
+      },
+    });
+    return res.status(200).json({ user: newUser });
+  } catch (e) {
+    res.status(400).json({ e });
   }
-
-  const newUser = await prismaClient.user.create({
-    data: {
-      id: userId,
-      name,
-      email: new Date().getTime() + "@gmail.com",
-      password: "",
-    },
-  });
-  return res.status(200).json({ user: newUser });
 });
