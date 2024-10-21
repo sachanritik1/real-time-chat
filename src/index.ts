@@ -103,5 +103,6 @@ app.post("/login", async function (req, res) {
     return res.status(200).json({ user: newUser });
   } catch (e) {
     res.status(400).json({ e });
+    console.log(e);
   }
 });
