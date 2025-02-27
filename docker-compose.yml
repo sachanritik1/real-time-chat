@@ -1,0 +1,25 @@
+version: "3.8"
+services:
+  app:
+    networks:
+      - real-chat-network
+    restart: on-failure
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://neondb_owner:9h3rxJdvPtmH@ep-calm-cherry-a8thhmqm-pooler.eastus2.azure.neon.tech/neondb?sslmode=require
+
+  redis:
+    networks:
+      - real-chat-network
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+networks:
+  real-chat-network:
+    driver: bridge
