@@ -1,14 +1,15 @@
 import http from "http";
 import express from "express";
 import cors from "cors";
-
+import dotenv from "dotenv";
+dotenv.config();
 import { server as WebSocketServer } from "websocket";
 
 const app = express();
 app.use(
   cors({
-    origin: "*",
-    // credentials: true,
+    origin: process.env.FRONTEND_URL || "*",
+    credentials: true,
   })
 );
 app.use(express.json());
