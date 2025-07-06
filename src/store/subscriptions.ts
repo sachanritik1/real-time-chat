@@ -10,6 +10,7 @@ const subscribeClient = getSubscribeClient();
 const map = new Map<string, connection[]>();
 
 export async function subscribeToRoom(roomId: string, socket: connection) {
+  console.log("Subscribing to room", roomId);
   if (map.has(roomId)) {
     if (!map.get(roomId)?.includes(socket)) {
       map.set(roomId, [...map.get(roomId)!, socket]);
@@ -19,9 +20,12 @@ export async function subscribeToRoom(roomId: string, socket: connection) {
   }
 
   map.set(roomId, [socket]);
-  await subscribeClient.SUBSCRIBE(roomId, (message) => {
-    console.log("Message received in room", roomId, JSON.parse(message));
-    const { chat, userId } = JSON.parse(message);
+  const room = subscribeClient.subscribe(roomId);
+  room.on("subscribe", () => console.log("Subscribed to room", roomId));
+  room.on("message", (payload: any) => {
+    console.log("----- Message received in room  -----", roomId, payload);
+    const { message } = payload;
+    const { chat, userId } = message;
 
     const outgoingPayload: OutgoingMessage = {
       type: SupportedMessage.AddChat,
@@ -39,4 +43,5 @@ export async function subscribeToRoom(roomId: string, socket: connection) {
       socket.sendUTF(JSON.stringify(outgoingPayload));
     });
   });
+  room.on("error", (err) => console.log("Error in room", roomId, err));
 }

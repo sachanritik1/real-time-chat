@@ -64,13 +64,13 @@ class InMemoryStore implements Store {
     };
 
     // add chat to redis buffer to bulk save on db later
-    await publishClient.RPUSH(
+    await publishClient.rpush(
       "chatBuffer",
       JSON.stringify({ chat, roomId, userId })
     );
 
     // Publish the chat to redis pub/sub for real-time chats
-    await publishClient.PUBLISH(
+    const publishResult = await publishClient.publish(
       roomId,
       JSON.stringify({
         chat: {
@@ -85,6 +85,7 @@ class InMemoryStore implements Store {
         userId,
       })
     );
+    console.log("Published chat to room", roomId, publishResult);
   }
 }
 

@@ -1,36 +1,38 @@
-import { createClient, RedisClientType } from "redis";
+import { Redis } from "@upstash/redis";
 import dotenv from "dotenv";
 import path from "path";
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-const url = process.env.REDIS_URL || "redis://localhost:6379";
+const url = process.env.REDIS_HTTP_URL;
+const token = process.env.REDIS_TOKEN;
 
 // Singleton pattern for the Redis clients
-let publishClient: RedisClientType | null = null;
-let subscribeClient: RedisClientType | null = null;
+let publishClient: Redis | null = null;
+let subscribeClient: Redis | null = null;
 
 // Create a Redis publish client
 export function getPublishClient() {
   if (publishClient) return publishClient;
 
-  publishClient = createClient({
-    url: url,
+  publishClient = new Redis({
+    url,
+    token,
   });
 
-  // Connect and set up error handling
-  (async () => {
-    try {
-      publishClient.on("error", (err) =>
-        console.log("Publish Client Error", err)
-      );
-      await publishClient.connect();
-      console.log("Publish client connected to Redis:", url);
-    } catch (e) {
-      console.error("Error connecting publish client:", e);
-    }
-  })();
+  // // Connect and set up error handling
+  // (async () => {
+  //   try {
+  //     publishClient.("error", (err) =>
+  //       console.log("Publish Client Error", err)
+  //     );
+  //     await publishClient.connect();
+  //     console.log("Publish client connected to Redis:", url);
+  //   } catch (e) {
+  //     console.error("Error connecting publish client:", e);
+  //   }
+  // })();
 
   return publishClient;
 }
@@ -39,22 +41,23 @@ export function getPublishClient() {
 export function getSubscribeClient() {
   if (subscribeClient) return subscribeClient;
 
-  subscribeClient = createClient({
-    url: url,
+  subscribeClient = new Redis({
+    url,
+    token,
   });
 
-  // Connect and set up error handling
-  (async () => {
-    try {
-      subscribeClient.on("error", (err) =>
-        console.log("Subscribe Client Error", err)
-      );
-      await subscribeClient.connect();
-      console.log("Subscribe client connected to Redis:", url);
-    } catch (e) {
-      console.error("Error connecting subscribe client:", e);
-    }
-  })();
+  // // Connect and set up error handling
+  // (async () => {
+  //   try {
+  //     subscribeClient.on("error", (err) =>
+  //       console.log("Subscribe Client Error", err)
+  //     );
+  //     await subscribeClient.connect();
+  //     console.log("Subscribe client connected to Redis:", url);
+  //   } catch (e) {
+  //     console.error("Error connecting subscribe client:", e);
+  //   }
+  // })();
 
   return subscribeClient;
 }
