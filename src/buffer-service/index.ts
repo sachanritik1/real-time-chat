@@ -7,7 +7,7 @@ const prismaClient = getPrismaClient();
 
 const saveChatsToDatabase = async () => {
   // Get all chats from the Redis buffer
-  const chats = await publishClient.lRange("chatBuffer", 0, -1);
+  const chats = await publishClient.lrange("chatBuffer", 0, -1);
 
   if (chats.length === 0) {
     console.log(new Date() + "No chats to save at the moment.");
@@ -53,7 +53,7 @@ const saveChatsToDatabase = async () => {
     console.log(`Saved ${validChats.length} chats to the database.`);
 
     // Remove the chats from the Redis buffer after saving
-    await publishClient.lTrim("chatBuffer", chats.length, -1); // Clears the processed items
+    await publishClient.ltrim("chatBuffer", chats.length, -1); // Clears the processed items
   } catch (error) {
     console.error("Error saving chats:", error);
   }
