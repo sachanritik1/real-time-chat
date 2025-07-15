@@ -5,9 +5,15 @@ import { getPublishClient } from "../redis";
 const publishClient = getPublishClient();
 const prismaClient = getPrismaClient();
 
+type ChatBuffer = {
+  chat: Chat;
+  roomId: string;
+  userId: string;
+};
+
 const saveChatsToDatabase = async () => {
   // Get all chats from the Redis buffer
-  const chats = await publishClient.lrange("chatBuffer", 0, -1);
+  const chats: ChatBuffer[] = await publishClient.lrange("chatBuffer", 0, -1);
 
   if (chats.length === 0) {
     console.log(new Date() + "No chats to save at the moment.");
@@ -15,8 +21,8 @@ const saveChatsToDatabase = async () => {
   }
 
   // Parse chats from Redis and prepare them for bulk insertion
-  const parsedChats: Chat[] = chats.map((chat) => {
-    const _chat = JSON.parse(chat)?.chat;
+  const parsedChats: Chat[] = chats.map((chat: ChatBuffer) => {
+    const _chat = chat.chat;
     return {
       id: _chat.id,
       userId: _chat.userId,
