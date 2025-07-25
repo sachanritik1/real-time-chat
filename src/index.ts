@@ -10,6 +10,7 @@ import { wsServer, app } from "./app";
 import { getPrismaClient } from "./prisma";
 import { SupportedMessage as OutgoingSupportedMessage } from "./messages/outgoingMessages";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { generateToken } from "./auth/jwt";
 import { authMiddleware, AuthRequest } from "./auth/middleware";
 import { requireWebSocketAuth } from "./auth/websocket";
@@ -102,24 +103,78 @@ app.get("/room/:roomId", authMiddleware, async function (req: AuthRequest, res) 
   res.status(200).json({ room });
 });
 
-app.post("/login", async function (req, res) {
+app.post("/register", async function (req, res) {
   try {
-    const { name, email } = z
+    const { name, email, password } = z
       .object({
-        name: z.string(),
-        email: z.string().email(),
+        name: z.string().min(2, "Name must be at least 2 characters"),
+        email: z.string().email("Invalid email format"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
       })
       .parse(req.body);
 
-    let user = await prismaClient.user.findUnique({ where: { email } });
+    // Check if user already exists
+    const existingUser = await prismaClient.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "User with this email already exists" });
+    }
+
+    // Hash the password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create new user
+    const user = await prismaClient.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+    });
+
+    // Generate JWT token
+    const token = generateToken(user);
+    
+    // Set cookie with token
+    res.cookie('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
+    return res.status(201).json({ 
+      user: { id: user.id, name: user.name, email: user.email }, 
+      token 
+    });
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return res.status(400).json({ error: e.errors[0].message });
+    }
+    console.error("Registration error:", e);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/login", async function (req, res) {
+  try {
+    const { email, password } = z
+      .object({
+        email: z.string().email("Invalid email format"),
+        password: z.string().min(1, "Password is required"),
+      })
+      .parse(req.body);
+
+    // Find user by email
+    const user = await prismaClient.user.findUnique({ where: { email } });
     if (!user) {
-      user = await prismaClient.user.create({
-        data: {
-          name,
-          email,
-          password: "",
-        },
-      });
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     // Generate JWT token
@@ -133,10 +188,16 @@ app.post("/login", async function (req, res) {
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
-    return res.status(200).json({ user, token });
+    return res.status(200).json({ 
+      user: { id: user.id, name: user.name, email: user.email }, 
+      token 
+    });
   } catch (e) {
-    res.status(400).json({ e });
-    console.log(e);
+    if (e instanceof z.ZodError) {
+      return res.status(400).json({ error: e.errors[0].message });
+    }
+    console.error("Login error:", e);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
